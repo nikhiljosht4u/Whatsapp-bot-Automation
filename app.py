@@ -12,13 +12,13 @@ app = Flask(__name__)
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 
-ACCOUNT_SID = 'AC96bd20e4f3ec6fcc99c41d3d48a3b94e'
-AUTH_TOKEN = '3d24fd1e03849709b1cd7a5d76fee2a4'
-WHATSAPP_NUMBER = 'whatsapp:+14155238886'
+ACCOUNT_SID = '*****************'
+AUTH_TOKEN = '*****************'
+WHATSAPP_NUMBER = 'whatsapp:*****************'
 
 # Google Sheets credentials and setup
-SERVICE_ACCOUNT_FILE = 'sunbirdstrawsbot-883efa38a9be.json'  # Replace with the path to your service account JSON file
-SPREADSHEET_ID = '13q2Y2qc8pMbi7CJzdeIAF3oGmKEdbry0c3rtoAsVb60'  # Replace with your Google Sheet ID
+SERVICE_ACCOUNT_FILE = '*****************.json'  # Replace with the path to your service account JSON file
+SPREADSHEET_ID = '*****************'  # Replace with your Google Sheet ID
 
 # OAuth2.0 flow setup using service account
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -41,10 +41,10 @@ initial_greeting_sent = {}
 
 # Mapping of phone numbers to center names
 phone_to_center = {
-    '8078852545': 'WKY',
-    '8951894873': 'PALAKKAD',
-    '1234567890': 'MELLAHALLI',
-    '9074635529': 'BANNUR',
+    '123456789': 'LONDON',
+    '8951865655': 'PALAKKAD',
+    '1234567890': 'NEWYORK',
+    '9578765429': 'AFRICA',
     # Add other mappings as needed
 }
 
@@ -63,7 +63,7 @@ def fetch_data(worksheet_name):
         return []
 
 def send_whatsapp_message(message_body, to_number):
-    whatsapp_to_number = f"whatsapp:+91{to_number}"
+    whatsapp_to_number = f"whatsapp:+COUNTRYCODE{to_number}"
     try:
         message = client_twilio.messages.create(
             body=message_body,
@@ -84,19 +84,19 @@ def save_response(worksheet_name, response_data):
 
 def fetch_questions():
     questions = fetch_data('Questions')
-    spc_questions = [q[0] for q in questions if len(q) > 1 and q[1] == 'SPC']
-    lpc_questions = [q[0] for q in questions if len(q) > 1 and q[1] == 'LPC']
-    logging.info(f"SPC Questions: {spc_questions}")
-    logging.info(f"LPC Questions: {lpc_questions}")
-    return spc_questions, lpc_questions
+    CAT1_questions = [q[0] for q in questions if len(q) > 1 and q[1] == 'CAT1']
+    CAT2_questions = [q[0] for q in questions if len(q) > 1 and q[1] == 'CAT2']
+    logging.info(f"CAT1 Questions: {CAT1_questions}")
+    logging.info(f"CAT2 Questions: {CAT2_questions}")
+    return CAT1_questions, CAT2_questions
 
 def fetch_bot_entries():
     entries = fetch_data('Bot Entries')
-    spc_numbers = [entry[3] for entry in entries if len(entry) > 3 and entry[2].strip().upper() == 'SPC']
-    lpc_numbers = [entry[3] for entry in entries if len(entry) > 3 and entry[2].strip().upper() == 'LPC']
-    logging.info(f"SPC Numbers: {spc_numbers}")
-    logging.info(f"LPC Numbers: {lpc_numbers}")
-    return spc_numbers, lpc_numbers
+    CAT1_numbers = [entry[3] for entry in entries if len(entry) > 3 and entry[2].strip().upper() == 'CAT1']
+    CAT2_numbers = [entry[3] for entry in entries if len(entry) > 3 and entry[2].strip().upper() == 'CAT2']
+    logging.info(f"CAT1 Numbers: {CAT1_numbers}")
+    logging.info(f"CAT2 Numbers: {CAT2_numbers}")
+    return CAT1_numbers, CAT2_numbers
 
 def send_next_question(phone_number, center, questions, sheet_name):
     if phone_number not in initial_greeting_sent:
@@ -119,18 +119,18 @@ def send_next_question(phone_number, center, questions, sheet_name):
         logging.info(f"Sent thank you message to {phone_number}")
 
 def send_questions():
-    spc_questions, lpc_questions = fetch_questions()
-    spc_numbers, lpc_numbers = fetch_bot_entries()
+    CAT1_questions, CAT2_questions = fetch_questions()
+    CAT1_numbers, CAT2_numbers = fetch_bot_entries()
 
-    for number in spc_numbers:
+    for number in CAT1_numbers:
         if number not in current_question_index:
             current_question_index[number] = 0
-        send_next_question(number, 'SPC', spc_questions, 'SPC_Responses')
+        send_next_question(number, 'CAT1', CAT1_questions, 'CAT1_Responses')
 
-    for number in lpc_numbers:
+    for number in CAT2_numbers:
         if number not in current_question_index:
             current_question_index[number] = 0
-        send_next_question(number, 'LPC', lpc_questions, 'LPC_Responses')
+        send_next_question(number, 'CAT2', CAT2_questions, 'CAT2_Responses')
 
 @app.route("/")
 def home():
@@ -148,22 +148,22 @@ def receive_response():
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Identify the center and questions
-        spc_questions, lpc_questions = fetch_questions()
-        spc_numbers, lpc_numbers = fetch_bot_entries()
+        CAT1_questions, CAT2_questions = fetch_questions()
+        CAT1_numbers, CAT2_numbers = fetch_bot_entries()
 
         logging.info(f"Received response from number: {from_number_without_prefix}")
 
         # Remove the +91 prefix from the incoming number for comparison
         from_number_without_country_code = from_number_without_prefix.replace('+91', '')
 
-        if from_number_without_country_code in spc_numbers:
-            center = 'SPC'
-            questions = spc_questions
-            sheet_name = 'SPC_Responses'
-        elif from_number_without_country_code in lpc_numbers:
-            center = 'LPC'
-            questions = lpc_questions
-            sheet_name = 'LPC_Responses'
+        if from_number_without_country_code in CAT1_numbers:
+            center = 'CAT1'
+            questions = CAT1_questions
+            sheet_name = 'CAT1_Responses'
+        elif from_number_without_country_code in CAT2_numbers:
+            center = 'CAT2'
+            questions = CAT2_questions
+            sheet_name = 'CAT2_Responses'
         else:
             logging.error(f"Unknown number: {from_number}")
             return str(MessagingResponse())
